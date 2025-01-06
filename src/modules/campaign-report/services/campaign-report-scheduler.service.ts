@@ -8,6 +8,7 @@ export class CampaignReportScheduler {
 
   constructor(private readonly campaignReportService: CampaignReportService) {}
 
+  // TODO: consider using redis or DB (as a source of truth) and save latest request date and optimize calls in this way
   @Cron(CronExpression.EVERY_HOUR)
   @Timeout(5000)
   public handleCron() {
