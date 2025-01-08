@@ -13,6 +13,6 @@ export class CampaignReportController {
   @Post()
   @HttpCode(HttpStatus.OK)
   public initiateDataFetch() {
-    console.info('did an operation');
+    return this.campaignReportService.fetchCampaignReportsInRange();
   }
 }

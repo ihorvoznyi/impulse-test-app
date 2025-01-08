@@ -1,9 +1,8 @@
 import { IsDate, IsPositive, IsString } from 'class-validator';
-import { EventType } from 'src/common/enums/event-type.enum';
 
 export abstract class GetCampaignReportsByEventNameDto {
   @IsString()
-  public event_name: EventType;
+  public event_name: Event;
 
   @IsPositive()
   public take: number;

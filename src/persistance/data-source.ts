@@ -5,10 +5,8 @@ import { SnakeCaseStrategy } from './strategies';
 
 import { Environment } from 'src/configs';
 
-const isDevelopment = Environment.NODE_ENV !== 'production';
-const filesExtension = isDevelopment ? '.ts' : '.js';
-
-const cwd = process.cwd() + `/${isDevelopment ? 'src' : 'dist'}`;
+// const isDevelopment = Environment.NODE_ENV !== 'production';
+// const filesExtension = isDevelopment ? '.ts' : '.js';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -21,9 +19,9 @@ export const AppDataSource = new DataSource({
 
   dropSchema: false,
 
-  entities: [join(cwd, '/**/entities/*.entity' + filesExtension)],
-  migrations: [join(cwd, '/**/migrations/*' + filesExtension)],
-  subscribers: [join(cwd, '/**/subscribers/*.subscriber' + filesExtension)],
+  entities: [join(__dirname, 'entities/*.entity{.ts,.js}')],
+  migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
+  subscribers: [join(__dirname, 'subscribers/*.subscriber{.ts,.js}')],
 
   namingStrategy: new SnakeCaseStrategy(),
 
