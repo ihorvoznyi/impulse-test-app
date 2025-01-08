@@ -1,1 +1,2 @@
-export type { IImpulseApiResponse as ImpulseApiResponse } from './impulse-api-response.interface';
+export type { IImpulseApiResponse } from './impulse-api-response.interface';
+export type { IImpulseCampaignReport } from './impulse-campaign-report.interface';

@@ -1,10 +1,9 @@
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { GetCampaignReportsApiDto } from './dtos';
 import { Environment } from 'src/configs';
-import { catchError, firstValueFrom } from 'rxjs';
-import { ImpulseApiResponse } from './interfaces';
-import { AxiosError, AxiosRequestConfig } from 'axios';
+import { IImpulseApiResponse } from './interfaces';
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 const ENDPOINTS = {
   CAMPAIGN_REPORTS: `${Environment.IMPULSE_API}/tasks/campaign/reports`,
@@ -12,13 +11,11 @@ const ENDPOINTS = {
 
 @Injectable()
 export class ImpulseApiAdapter {
-  private readonly logger = new Logger(ImpulseApiAdapter.name);
-
   constructor(private readonly httpService: HttpService) {}
 
-  public async fetchCampaignReports(
+  public getCampaignReports(
     params: GetCampaignReportsApiDto | string,
-  ): Promise<ImpulseApiResponse | never> {
+  ): Promise<AxiosResponse<IImpulseApiResponse>> {
     let url = ENDPOINTS.CAMPAIGN_REPORTS;
     let axiosRequestConfig: AxiosRequestConfig;
 
@@ -32,17 +29,9 @@ export class ImpulseApiAdapter {
       };
     }
 
-    this.logger.debug(axiosRequestConfig);
-
-    const { data } = await firstValueFrom(
-      this.httpService.get<ImpulseApiResponse>(url, axiosRequestConfig).pipe(
-        catchError((error: AxiosError) => {
-          this.logger.error(error.message);
-          throw new BadRequestException(error);
-        }),
-      ),
+    return this.httpService.axiosRef.get<IImpulseApiResponse>(
+      url,
+      axiosRequestConfig,
     );
-
-    return data;
   }
 }

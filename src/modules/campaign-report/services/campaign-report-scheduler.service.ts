@@ -8,10 +8,15 @@ export class CampaignReportScheduler {
 
   constructor(private readonly campaignReportService: CampaignReportService) {}
 
-  // TODO: consider using redis or DB (as a source of truth) and save latest request date and optimize calls in this way
   @Cron(CronExpression.EVERY_HOUR)
   @Timeout(5000)
   public handleCron() {
     this.logger.log('Executing campaign report service...');
+
+    try {
+      // const result = this.campaignReportService.fetchCampaignReportsInRange();
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 }

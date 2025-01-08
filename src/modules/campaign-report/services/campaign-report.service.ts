@@ -1,7 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { CsvHelper } from 'src/common/helpers/csv';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ImpulseApiAdapter } from 'src/modules/http-adapters';
 import { CampaignReportsRepository } from 'src/persistance/repositories';
+import { FetchCampaignReportsByDateRangeDto } from '../dtos/fetch-campaign-reports-by-date-range';
+import { catchError, map, Observable } from 'rxjs';
+import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adapter/dtos';
+import { CsvHelper } from 'src/common/helpers/csv';
+import { IImpulseCampaignReport } from 'src/modules/http-adapters/impulse-adapter/interfaces';
+import { CampaignReportsEntity } from 'src/persistance/entities/campaign-reports.entity';
+import { DateUtil } from 'src/common/utils/date.util';
 
 @Injectable()
 export class CampaignReportService {
@@ -16,44 +22,78 @@ export class CampaignReportService {
     return await this.campaignReportsRepository.find({ where: { eventName } });
   }
 
-  public async fetchCampaignReportsInRange() {
-    const data: any[] = [];
-    let nextUrl: string | undefined;
-
-    let retry = 0;
-
-    try {
-      do {
-        const res = await this.impulseApiAdapter.fetchCampaignReports(
-          nextUrl || {
-            take: 15,
-            from_date: '2024-12-15 00:00:00',
-            to_date: '2024-12-15 23:59:59',
-            event_name: 'purchase',
-          },
+  public async fetchCampaignReportsInRange(
+    fetchCampaignReportsInRange: FetchCampaignReportsByDateRangeDto,
+  ) {
+    const result = this.handlePaginatedFetch(fetchCampaignReportsInRange).pipe(
+      map((csvString) => CsvHelper.parse<IImpulseCampaignReport>(csvString)),
+      map((impulseCampaignReports: IImpulseCampaignReport[]) => {
+        return impulseCampaignReports.map((report) => ({
+          clientId: report.client_id,
+          campaign: report.campaign,
+          campaignId: report.campaign_id,
+          ad: report.ad,
+          adId: report.ad_id,
+          adgroup: report.adgroup,
+          adgroupId: report.adgroup_id,
+          eventName: report.event_name,
+          eventTime: DateUtil.parse(report.event_time),
+        })) as CampaignReportsEntity[];
+      }),
+      map(async (campaignReportEntities) => {
+        await this.storeBatch(campaignReportEntities);
+        return campaignReportEntities;
+      }),
+      catchError((err) => {
+        throw new HttpException(
+          `Error processing reports: ${err.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
+      }),
+    );
 
-        const { csv, pagination } = res.data;
-        const campaignReports = CsvHelper.parse(csv, true);
-        this.logger.log(campaignReports, res.timestamp);
+    return result;
+  }
 
-        data.push(campaignReports);
+  private handlePaginatedFetch(params: FetchCampaignReportsByDateRangeDto) {
+    return new Observable<string>((subscriber) => {
+      const fetchPageData = async (
+        nextParams: string | GetCampaignReportsApiDto,
+      ) => {
+        try {
+          const promise = this.impulseApiAdapter.getCampaignReports(nextParams);
+          const { data } = await promise;
+          const { csv, pagination } = data.data;
 
-        nextUrl = pagination?.next || null;
-        if (nextUrl) {
-          await this.delay(2000);
+          subscriber.next(csv);
+
+          if (pagination?.next) {
+            await fetchPageData(pagination.next);
+          } else {
+            this.logger.log('completed');
+            subscriber.complete();
+          }
+        } catch (error) {
+          subscriber.error(error);
         }
+      };
 
-        ++retry;
-      } while (retry < 3);
+      fetchPageData({
+        event_name: params.eventName,
+        take: 50,
+        to_date: params.toDate,
+        from_date: params.fromDate,
+      });
+    });
+  }
 
-      return data.flat();
+  private async storeBatch(entities: CampaignReportsEntity[]): Promise<void> {
+    try {
+      // await this.campaignReportsRepository.save(campaignReportEntities, { chunk: 50 });
+      this.logger.log(`SAVED: ${entities.length}`);
     } catch (error) {
-      this.logger.error(
-        'Error while fetching campaign reports from the API',
-        error.stack,
-      );
-      throw new Error('Unable to fetch campaign reports from the API.');
+      this.logger.error(error);
+      throw new Error('Failed to store reports');
     }
   }
 

@@ -1,5 +1,13 @@
-import { Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
 import { CampaignReportService } from '../services';
+import { FetchCampaignReportsByDateRangeDto } from '../dtos/fetch-campaign-reports-by-date-range';
 
 @Controller('campaign-reports')
 export class CampaignReportController {
@@ -12,7 +20,7 @@ export class CampaignReportController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  public initiateDataFetch() {
-    return this.campaignReportService.fetchCampaignReportsInRange();
+  public initiateDataFetch(@Body() dto: FetchCampaignReportsByDateRangeDto) {
+    return this.campaignReportService.fetchCampaignReportsInRange(dto);
   }
 }

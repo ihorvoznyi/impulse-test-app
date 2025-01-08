@@ -1,8 +1,9 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { TABLE_NAME } from '../const';
 import { BaseEntity } from './base.entity';
 
 @Entity({ name: TABLE_NAME.CAMPAIGN_REPORTS_TABLE })
+@Index(['eventTime', 'clientId', 'eventName'], { unique: true })
 export class CampaignReportsEntity extends BaseEntity {
   @Column({ type: 'varchar' })
   clientId: string;

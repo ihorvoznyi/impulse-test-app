@@ -3,7 +3,10 @@ import { CastingFunction, parse } from 'csv-parse/sync';
 
 @Injectable()
 export class CsvHelper {
-  public static parse(csv: string, cast: CastingFunction | boolean = true) {
+  public static parse<T = unknown>(
+    csv: string,
+    cast: CastingFunction | boolean = true,
+  ): T[] {
     try {
       const records = parse(csv, {
         columns: true,
