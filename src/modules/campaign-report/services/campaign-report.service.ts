@@ -7,7 +7,8 @@ import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adap
 import { CsvHelper } from 'src/common/helpers/csv';
 import { IImpulseCampaignReport } from 'src/modules/http-adapters/impulse-adapter/interfaces';
 import { CampaignReportsEntity } from 'src/persistance/entities/campaign-reports.entity';
-import { DateUtil } from 'src/common/utils/date.util';
+import { ImpulseCompaignReportMapper } from '../mappers/impulse-compaign-report.mapper';
+import { splitIntoChunks } from 'src/common/utils/array.utils';
 
 @Injectable()
 export class CampaignReportService {
@@ -19,7 +20,13 @@ export class CampaignReportService {
   ) {}
 
   public async getByEventName(eventName: string) {
-    return await this.campaignReportsRepository.find({ where: { eventName } });
+    return await this.campaignReportsRepository.findMany({
+      where: { eventName },
+    });
+  }
+
+  public async clean() {
+    return await this.campaignReportsRepository.clear();
   }
 
   public async fetchCampaignReportsInRange(
@@ -27,23 +34,9 @@ export class CampaignReportService {
   ) {
     const result = this.handlePaginatedFetch(fetchCampaignReportsInRange).pipe(
       map((csvString) => CsvHelper.parse<IImpulseCampaignReport>(csvString)),
-      map((impulseCampaignReports: IImpulseCampaignReport[]) => {
-        return impulseCampaignReports.map((report) => ({
-          clientId: report.client_id,
-          campaign: report.campaign,
-          campaignId: report.campaign_id,
-          ad: report.ad,
-          adId: report.ad_id,
-          adgroup: report.adgroup,
-          adgroupId: report.adgroup_id,
-          eventName: report.event_name,
-          eventTime: DateUtil.parse(report.event_time),
-        })) as CampaignReportsEntity[];
-      }),
-      map(async (campaignReportEntities) => {
-        await this.storeBatch(campaignReportEntities);
-        return campaignReportEntities;
-      }),
+      map(ImpulseCompaignReportMapper.map),
+      map(this.campaignReportsRepository.createInstance),
+      map(this.bulkInsert),
       catchError((err) => {
         throw new HttpException(
           `Error processing reports: ${err.message}`,
@@ -87,21 +80,92 @@ export class CampaignReportService {
     });
   }
 
-  private async storeBatch(entities: CampaignReportsEntity[]): Promise<void> {
-    try {
-      // await this.campaignReportsRepository.save(campaignReportEntities, { chunk: 50 });
-      this.logger.log(`SAVED: ${entities.length}`);
-    } catch (error) {
-      this.logger.error(error);
-      throw new Error('Failed to store reports');
+  private async bulkInsert(entities: CampaignReportsEntity[]) {
+    const result = { inserted: 0, skipped: 0, failed: [] };
+    if (!entities?.length) {
+      return result;
     }
+
+    const chunkSize = 500;
+    const chunks = splitIntoChunks(entities, chunkSize);
+    const promises = chunks.map(async (chunk) => {
+      let skipped = 0;
+      let inserted = 0;
+      const failed: { chunk: CampaignReportsEntity[]; error: any }[] = [];
+
+      try {
+        const result = await this.campaignReportsRepository
+          .createQueryBuilder()
+          .insert()
+          .into(CampaignReportsEntity)
+          .values(chunk)
+          .orIgnore()
+          .execute();
+
+        inserted += result.identifiers.length;
+        skipped += chunk.length - inserted;
+      } catch (error) {
+        failed.push({
+          chunk,
+          error,
+        });
+      }
+
+      result.failed.push(failed);
+      result.skipped += skipped;
+      result.inserted += inserted;
+    });
+
+    await Promise.allSettled(promises);
+    return result;
   }
 
-  /**
-   * Delay execution for a specified duration (in milliseconds).
-   * @param ms - Milliseconds to wait.
-   */
-  private async delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private async storeBatch(entities: CampaignReportsEntity[]) {
+    if (!entities?.length) {
+      this.logger.warn(`Skip ${CampaignReportsEntity.name}[] persistance`);
+      return;
+    }
+
+    let successStoreCount = 0;
+    const skipped = [];
+    const errors: { chunk: CampaignReportsEntity[]; error: string }[] = [];
+    const CHUNK_SIZE = 100;
+
+    for (let i = 0; i < entities.length; i += CHUNK_SIZE) {
+      const chunk = entities.slice(i, i + CHUNK_SIZE);
+
+      try {
+        const result = await this.campaignReportsRepository
+          .createQueryBuilder()
+          .insert()
+          .into(CampaignReportsEntity)
+          .values(chunk)
+          .orIgnore()
+          .execute();
+
+        successStoreCount += result.identifiers.length;
+
+        console.dir(result);
+
+        const skippedValues = chunk.filter(
+          (record) =>
+            !result.identifiers.some((row) => {
+              return record.hash === row?.hash;
+            }),
+        );
+
+        skipped.push(skippedValues);
+      } catch (error) {
+        this.logger.error(error);
+        errors.push({ chunk, error: error.message });
+      }
+    }
+
+    return {
+      errors,
+      skipped,
+      failed: errors.length,
+      success: successStoreCount,
+    };
   }
 }

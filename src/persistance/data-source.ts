@@ -30,6 +30,7 @@ export const AppDataSource = new DataSource({
     ssl: undefined,
   },
 
+  logging: false,
   synchronize: false,
-  logging: Environment.NODE_ENV !== 'production',
+  // logging: Environment.NODE_ENV !== 'production',
 });

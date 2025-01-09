@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
 } from '@nestjs/common';
 import { CampaignReportService } from '../services';
@@ -14,13 +16,18 @@ export class CampaignReportController {
   constructor(private readonly campaignReportService: CampaignReportService) {}
 
   @Get()
-  public getAllByEventName() {
-    return this.campaignReportService.getByEventName('payment');
+  public getAllByEventName(@Param('event_name') eventName: string) {
+    return this.campaignReportService.getByEventName(eventName);
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
   public initiateDataFetch(@Body() dto: FetchCampaignReportsByDateRangeDto) {
     return this.campaignReportService.fetchCampaignReportsInRange(dto);
+  }
+
+  @Delete('/clean-up')
+  public clean() {
+    return this.campaignReportService.clean();
   }
 }
