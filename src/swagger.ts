@@ -1,20 +1,29 @@
 import { INestApplication } from '@nestjs/common';
 import { Environment } from './configs';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { writeFileSync } from 'node:fs';
 
 export function setupSwagger(app: INestApplication) {
-  const appName = Environment.APP_NAME;
+  const docName = Environment.DOC_NAME;
+  const docPrefix = Environment.DOC_PREFIX;
+  const docVersion = Environment.DOC_VERSION;
+  const docDescription = Environment.DOC_DESCRIPTION;
 
   const config = new DocumentBuilder()
-    .setTitle(appName)
-    .setDescription('Event Syncronization application for Impulse API')
-    .addServer(Environment.APP_URL, 'development')
-    .setVersion('1.0')
+    .setTitle(docName)
+    .setDescription(docDescription)
+    .setVersion(docVersion)
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    deepScanRoutes: true,
+  });
 
-  SwaggerModule.setup('api-docs', app, document, {
-    customSiteTitle: appName,
+  writeFileSync('swagger.json', JSON.stringify(document));
+  SwaggerModule.setup(docPrefix, app, document, {
+    customSiteTitle: docName,
+
+    jsonDocumentUrl: `${docPrefix}/json`,
+    yamlDocumentUrl: `${docPrefix}/yaml`,
   });
 }

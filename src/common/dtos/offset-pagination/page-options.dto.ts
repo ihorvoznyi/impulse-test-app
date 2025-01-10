@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   EnumFieldOptional,
   NumberFieldOptional,
@@ -8,13 +9,26 @@ export const DEFAULT_PAGE_LIMIT = 50;
 export const DEFAULT_CURRENT_PAGE = 1;
 
 export class PageOptionsDto {
+  @ApiProperty({
+    required: false,
+    minimum: 1,
+    maximum: 1000,
+    default: DEFAULT_PAGE_LIMIT,
+  })
   @NumberFieldOptional({
     min: 1,
+    max: 1000,
     default: DEFAULT_PAGE_LIMIT,
     int: true,
   })
   readonly take?: number = DEFAULT_PAGE_LIMIT;
 
+  @ApiProperty({
+    required: false,
+    example: 1,
+    minimum: 1,
+    default: DEFAULT_CURRENT_PAGE,
+  })
   @NumberFieldOptional({
     min: 1,
     default: DEFAULT_CURRENT_PAGE,

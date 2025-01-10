@@ -9,6 +9,8 @@ const ENDPOINTS = {
   CAMPAIGN_REPORTS: `${Environment.IMPULSE_API}/tasks/campaign/reports`,
 };
 
+const DEFAULT_TAKE_PER_PAGE = 100;
+
 @Injectable()
 export class ImpulseApiAdapter {
   constructor(private readonly httpService: HttpService) {}
@@ -22,9 +24,11 @@ export class ImpulseApiAdapter {
     if (typeof params === 'string') {
       url = params;
     } else {
+      const take = params?.take || DEFAULT_TAKE_PER_PAGE;
       axiosRequestConfig = {
         params: {
           ...params,
+          take,
         },
       };
     }

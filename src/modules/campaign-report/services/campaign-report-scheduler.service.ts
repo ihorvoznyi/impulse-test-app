@@ -41,7 +41,6 @@ export class CampaignReportScheduler {
     return {
       fromDate,
       toDate,
-      take: 100,
       eventName,
     };
   }

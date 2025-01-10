@@ -8,7 +8,7 @@ import {
 import { ImpulseApiAdapter } from 'src/modules/http-adapters';
 import { CampaignReportsRepository } from 'src/persistance/repositories';
 import { FetchCampaignReportsReqDto } from '../dtos/requests/fetch-campaign-reports.req.dto';
-import { catchError, map, Observable } from 'rxjs';
+import { catchError, map, Observable, reduce, mergeMap } from 'rxjs';
 import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adapter/dtos';
 import { CsvService } from 'src/modules/libs/csv';
 import { IImpulseCampaignReport } from 'src/modules/http-adapters/impulse-adapter/interfaces';
@@ -21,6 +21,7 @@ import { CampaignReportsQueryBuilder } from './helpers';
 import { AggregatedEventDto } from '../dtos/aggregated-event.dto';
 import { AggregatedEventResponseMapper } from '../mappers/aggregated-event-response.mapper';
 import { GetAggregatedEventsReqDto } from '../dtos/requests';
+import { ManualFetchResDto } from '../dtos/responses';
 
 @Injectable()
 export class CampaignReportService {
@@ -82,11 +83,26 @@ export class CampaignReportService {
   public async fetchCampaignReportsInRange(
     fetchCampaignReportsInRange: FetchCampaignReportsReqDto,
   ) {
-    const result = this.handlePaginatedFetch(fetchCampaignReportsInRange).pipe(
+    return this.handlePaginatedFetch(fetchCampaignReportsInRange).pipe(
       map((csvString) => CsvService.parse<IImpulseCampaignReport>(csvString)),
       map(ImpulseCompaignReportMapper.map),
       map(this.campaignReportsRepository.createInstance),
-      map((instances) => this.bulkInsert(instances)),
+      mergeMap(
+        (instances) => this.bulkInsert(instances).then((result) => result), // Resolve the Promise
+      ),
+      reduce(
+        (acc, current: ManualFetchResDto) => {
+          acc.totalInserted += current.totalInserted;
+          acc.totalSkipped += current.totalSkipped;
+          acc.totalFailed += current.totalFailed;
+          return acc;
+        },
+        {
+          totalInserted: 0,
+          totalSkipped: 0,
+          totalFailed: 0,
+        } as ManualFetchResDto,
+      ),
       catchError((err) => {
         throw new HttpException(
           `Error processing reports: ${err.message}`,
@@ -94,8 +110,6 @@ export class CampaignReportService {
         );
       }),
     );
-
-    return result;
   }
 
   private handlePaginatedFetch(params: FetchCampaignReportsReqDto) {
@@ -123,15 +137,20 @@ export class CampaignReportService {
 
       fetchPageData({
         event_name: params.eventName,
-        take: params.take,
         to_date: params.toDate,
         from_date: params.fromDate,
       });
     });
   }
 
-  private async bulkInsert(entities: CampaignReportsEntity[]) {
-    const bulkInsertResult = { inserted: 0, skipped: 0, failed: [] };
+  private async bulkInsert(
+    entities: CampaignReportsEntity[],
+  ): Promise<ManualFetchResDto> {
+    const bulkInsertResult: ManualFetchResDto = {
+      totalFailed: 0,
+      totalSkipped: 0,
+      totalInserted: 0,
+    };
     if (!entities?.length) {
       return bulkInsertResult;
     }
@@ -180,9 +199,9 @@ export class CampaignReportService {
 
       const { failed, inserted, skipped } = entry.value;
 
-      bulkInsertResult.failed.push(failed);
-      bulkInsertResult.inserted += inserted;
-      bulkInsertResult.skipped += skipped;
+      bulkInsertResult.totalInserted += inserted;
+      bulkInsertResult.totalFailed += failed.length;
+      bulkInsertResult.totalSkipped += skipped;
     });
 
     return bulkInsertResult;

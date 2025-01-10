@@ -10,7 +10,7 @@ export const appSchema = z.object({
   HTTP_PORT: z.coerce.number().positive(),
   HTTP_HOST: z.string(),
 
-  APP_URL: z.string().url(),
+  // APP_URL: z.string().url().default('localhost'),
   APP_NAME: z.coerce.string().default('Impulse_API'),
   APP_DEBUG: z.coerce.boolean().default(false),
 });
