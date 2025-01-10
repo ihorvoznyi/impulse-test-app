@@ -1,3 +1,4 @@
+import { envBooleanSchema } from 'src/common/utils/zod-types.utils';
 import { z } from 'zod';
 
 const Environment = {
@@ -10,7 +11,7 @@ export const appSchema = z.object({
   HTTP_PORT: z.coerce.number().positive(),
   HTTP_HOST: z.string(),
 
-  // APP_URL: z.string().url().default('localhost'),
   APP_NAME: z.coerce.string().default('Impulse_API'),
-  APP_DEBUG: z.coerce.boolean().default(false),
+
+  APP_DEBUG: envBooleanSchema,
 });

@@ -5,9 +5,6 @@ import { SnakeCaseStrategy } from './strategies';
 
 import { Environment } from 'src/configs';
 
-// const isDevelopment = Environment.NODE_ENV !== 'production';
-// const filesExtension = isDevelopment ? '.ts' : '.js';
-
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: Environment.DB_HOST,
@@ -30,7 +27,6 @@ export const AppDataSource = new DataSource({
     ssl: undefined,
   },
 
-  logging: false,
   synchronize: false,
-  // logging: Environment.NODE_ENV !== 'production',
+  logging: Environment.DB_DEBUG && Environment.NODE_ENV !== 'production',
 });
