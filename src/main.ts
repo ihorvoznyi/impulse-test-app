@@ -12,11 +12,12 @@ import {
 import { Environment } from './configs';
 import { GlobalExceptionFilter } from './app/filters';
 import { ValidationError } from 'class-validator';
+import { setupSwagger } from './swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const logger = new Logger('Impulse_API');
+  const logger = new Logger(Environment.APP_NAME);
 
   app.use(helmet());
   app.useGlobalPipes(
@@ -29,6 +30,10 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
+
+  if (Environment.NODE_ENV === 'development') {
+    setupSwagger(app);
+  }
 
   await app.listen(Environment.HTTP_PORT, Environment.HTTP_HOST);
 
