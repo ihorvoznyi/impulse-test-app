@@ -10,11 +10,11 @@ type PaginateOptions<T> = Partial<{
 
 type PaginationResult<T> = [T[], OffsetPaginationDto];
 
-export async function paginate<T>(
+export async function paginate<T, ReturnType = T>(
   queryBuilder: SelectQueryBuilder<T>,
   pageOptionsDto: PageOptionsDto,
   options?: PaginateOptions<T>,
-): Promise<PaginationResult<T>> {
+): Promise<PaginationResult<ReturnType>> {
   const {
     raw = false,
     takeAll = false,

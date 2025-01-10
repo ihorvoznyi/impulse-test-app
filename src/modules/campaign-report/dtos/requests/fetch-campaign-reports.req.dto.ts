@@ -3,7 +3,7 @@ import { IsDateFormat } from 'src/common/decorators';
 import { EVENT_NAME } from 'src/modules/http-adapters/impulse-adapter';
 import { EventName } from 'src/modules/http-adapters/impulse-adapter/const';
 
-export abstract class FetchCampaignReportsByDateRangeDto {
+export abstract class FetchCampaignReportsReqDto {
   @IsDateFormat()
   public fromDate: string;
 

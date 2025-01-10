@@ -1,1 +1,1 @@
-export * from './campaign-reports.res.dto';
+export { PaginatedEventsResponse } from './aggregated-events.res.dtos';

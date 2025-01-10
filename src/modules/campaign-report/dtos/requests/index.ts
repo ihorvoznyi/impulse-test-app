@@ -1,2 +1,3 @@
-export * from './fetch-campaign-reports-by-date-range';
-export * from './get-campaign-reports-by-event-name.dto';
+export * from './fetch-campaign-reports.req.dto';
+export * from './list-campaign-reports.req.dto';
+export * from './get-aggregated-events.req.dto';

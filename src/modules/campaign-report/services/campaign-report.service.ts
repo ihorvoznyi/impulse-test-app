@@ -2,12 +2,12 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   Logger,
-  NotFoundException,
 } from '@nestjs/common';
 import { ImpulseApiAdapter } from 'src/modules/http-adapters';
 import { CampaignReportsRepository } from 'src/persistance/repositories';
-import { FetchCampaignReportsByDateRangeDto } from '../dtos/requests/fetch-campaign-reports-by-date-range';
+import { FetchCampaignReportsReqDto } from '../dtos/requests/fetch-campaign-reports.req.dto';
 import { catchError, map, Observable } from 'rxjs';
 import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adapter/dtos';
 import { CsvService } from 'src/modules/libs/csv';
@@ -15,21 +15,64 @@ import { IImpulseCampaignReport } from 'src/modules/http-adapters/impulse-adapte
 import { CampaignReportsEntity } from 'src/persistance/entities/campaign-reports.entity';
 import { ImpulseCompaignReportMapper } from '../mappers/impulse-compaign-report.mapper';
 import { splitIntoChunks } from 'src/common/utils/array.utils';
+import { paginate } from 'src/common/utils/offset-pagination.util';
+import { DateUtil } from 'src/common/utils/date.util';
+import { CampaignReportsQueryBuilder } from './helpers';
+import { AggregatedEventDto } from '../dtos/aggregated-event.dto';
+import { AggregatedEventResponseMapper } from '../mappers/aggregated-event-response.mapper';
+import { GetAggregatedEventsReqDto } from '../dtos/requests';
 
 @Injectable()
 export class CampaignReportService {
   private readonly logger = new Logger(CampaignReportService.name);
 
   constructor(
+    private readonly campaignReportsQueryBuilder: CampaignReportsQueryBuilder,
     private readonly impulseApiAdapter: ImpulseApiAdapter,
     private readonly campaignReportsRepository: CampaignReportsRepository,
   ) {}
 
-  public async getByEventName(eventName: string) {
-    throw new NotFoundException(eventName);
-    return await this.campaignReportsRepository.findMany({
-      where: { eventName },
-    });
+  public async getAggregatedEvents(
+    getAggregatedEventsDto: GetAggregatedEventsReqDto,
+  ) {
+    const eventName = getAggregatedEventsDto.event_name;
+    const endDate = DateUtil.parse(getAggregatedEventsDto.to_date);
+    const startDate = DateUtil.parse(getAggregatedEventsDto.from_date);
+
+    const campaignReportsQuery =
+      this.campaignReportsQueryBuilder.buildAggregatedEventsQuery(
+        eventName,
+        endDate,
+        startDate,
+      );
+
+    const campaignReportsCountQuery =
+      this.campaignReportsQueryBuilder.buildAggregatedCountQuery(
+        eventName,
+        endDate,
+        startDate,
+      );
+
+    try {
+      const [aggregatedEvents, meta] = await paginate<AggregatedEventDto>(
+        campaignReportsQuery,
+        getAggregatedEventsDto,
+        {
+          raw: true,
+          takeAll: false,
+          skipCount: false,
+          customCountQueryFn: campaignReportsCountQuery,
+        },
+      );
+
+      return AggregatedEventResponseMapper.toPaginatedResponse(
+        aggregatedEvents,
+        meta,
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
   }
 
   public async clean() {
@@ -37,7 +80,7 @@ export class CampaignReportService {
   }
 
   public async fetchCampaignReportsInRange(
-    fetchCampaignReportsInRange: FetchCampaignReportsByDateRangeDto,
+    fetchCampaignReportsInRange: FetchCampaignReportsReqDto,
   ) {
     const result = this.handlePaginatedFetch(fetchCampaignReportsInRange).pipe(
       map((csvString) => CsvService.parse<IImpulseCampaignReport>(csvString)),
@@ -55,7 +98,7 @@ export class CampaignReportService {
     return result;
   }
 
-  private handlePaginatedFetch(params: FetchCampaignReportsByDateRangeDto) {
+  private handlePaginatedFetch(params: FetchCampaignReportsReqDto) {
     return new Observable<string>((subscriber) => {
       const fetchPageData = async (
         nextParams: string | GetCampaignReportsApiDto,

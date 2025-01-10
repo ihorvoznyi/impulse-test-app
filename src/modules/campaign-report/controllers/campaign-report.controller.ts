@@ -5,30 +5,30 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Param,
   Post,
   Query,
 } from '@nestjs/common';
 import { CampaignReportService } from '../services';
-import { FetchCampaignReportsByDateRangeDto } from '../dtos/requests/fetch-campaign-reports-by-date-range';
+import {
+  GetAggregatedEventsReqDto,
+  FetchCampaignReportsReqDto,
+} from '../dtos/requests';
+import { PaginatedEventsResponse } from '../dtos/responses';
 
 @Controller('campaign-reports')
 export class CampaignReportController {
   constructor(private readonly campaignReportService: CampaignReportService) {}
 
   @Get()
-  public async getCampaignReports(
-    @Query('take') take: string,
-    @Query('page') page: string,
-  ) {
-    const pageNumber = parseInt(page, 10) || 1;
-    const takeNumber = parseInt(take, 10) || 10;
-    const baseUrl = '';
+  public getCampaignReports(
+    @Query() dto: GetAggregatedEventsReqDto,
+  ): Promise<PaginatedEventsResponse> {
+    return this.campaignReportService.getAggregatedEvents(dto);
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  public initiateDataFetch(@Body() dto: FetchCampaignReportsByDateRangeDto) {
+  public initiateDataFetch(@Body() dto: FetchCampaignReportsReqDto) {
     return this.campaignReportService.fetchCampaignReportsInRange(dto);
   }
 
