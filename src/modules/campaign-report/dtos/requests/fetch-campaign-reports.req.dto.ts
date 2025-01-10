@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
+import { EVENT_NAME } from 'src/common/const/event-name.const';
 import { IsDateFormat } from 'src/common/decorators';
-import { EVENT_NAME } from 'src/modules/http-adapters/impulse-adapter';
-import { EventName } from 'src/modules/http-adapters/impulse-adapter/const';
+import { CampaignReportEvent } from 'src/common/interfaces/campaign-report';
 
 export abstract class FetchCampaignReportsReqDto {
   @ApiProperty({
@@ -24,5 +24,5 @@ export abstract class FetchCampaignReportsReqDto {
     example: Object.values(EVENT_NAME).join(' | '),
   })
   @IsEnum(EVENT_NAME)
-  public eventName: EventName;
+  public eventName: CampaignReportEvent;
 }

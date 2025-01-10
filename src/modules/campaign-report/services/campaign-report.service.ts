@@ -9,7 +9,6 @@ import { ImpulseApiAdapter } from 'src/modules/http-adapters';
 import { CampaignReportsRepository } from 'src/persistance/repositories';
 import { FetchCampaignReportsReqDto } from '../dtos/requests/fetch-campaign-reports.req.dto';
 import { catchError, map, Observable, reduce, mergeMap } from 'rxjs';
-import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adapter/dtos';
 import { CsvService } from 'src/modules/libs/csv';
 import { IImpulseCampaignReport } from 'src/modules/http-adapters/impulse-adapter/interfaces';
 import { CampaignReportsEntity } from 'src/persistance/entities/campaign-reports.entity';
@@ -22,6 +21,7 @@ import { AggregatedEventDto } from '../dtos/aggregated-event.dto';
 import { AggregatedEventResponseMapper } from '../mappers/aggregated-event-response.mapper';
 import { GetAggregatedEventsReqDto } from '../dtos/requests';
 import { ManualFetchResDto } from '../dtos/responses';
+import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adapter/dtos';
 
 @Injectable()
 export class CampaignReportService {

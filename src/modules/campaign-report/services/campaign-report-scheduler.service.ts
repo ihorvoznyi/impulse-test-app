@@ -1,12 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CampaignReportService } from './campaign-report.service';
 import { Cron, CronExpression, Timeout } from '@nestjs/schedule';
-import {
-  EVENT_NAME,
-  EventName,
-} from 'src/modules/http-adapters/impulse-adapter/const';
 import { getFormattedStartAndEndOfToday } from 'src/common/utils/date.util';
 import { FetchCampaignReportsReqDto } from '../dtos/requests';
+import { CampaignReportEvent } from 'src/common/interfaces/campaign-report';
+import { EVENT_NAME } from 'src/common/const/event-name.const';
 
 const ONE_MINUTE = 60_000;
 
@@ -21,7 +19,7 @@ export class CampaignReportScheduler {
   public async executeCampaignReportFetch() {
     this.logger.log('Executing campaign report service...');
 
-    const events = Object.entries(EVENT_NAME).map((item) => item[1]);
+    const events = Object.values(EVENT_NAME);
     const fetchParams = events.map(this.createFetchRequestParams);
 
     try {
@@ -35,7 +33,7 @@ export class CampaignReportScheduler {
   }
 
   private createFetchRequestParams(
-    eventName: EventName,
+    eventName: CampaignReportEvent,
   ): FetchCampaignReportsReqDto {
     const [fromDate, toDate] = getFormattedStartAndEndOfToday();
     return {

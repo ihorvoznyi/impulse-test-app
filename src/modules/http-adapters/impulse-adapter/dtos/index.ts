@@ -1,1 +1,1 @@
-export { GetCampaignReportsApiDto } from './get-campaign-reports-api.dto';
+export * from './get-campaign-reports-api.dto';

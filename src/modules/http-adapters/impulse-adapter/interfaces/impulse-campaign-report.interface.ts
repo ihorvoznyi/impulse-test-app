@@ -1,3 +1,5 @@
+import { CampaignReportEvent } from 'src/common/interfaces/campaign-report';
+
 export interface IImpulseCampaignReport {
   client_id: string;
 
@@ -10,5 +12,5 @@ export interface IImpulseCampaignReport {
   adgroup_id: string;
 
   event_time: string;
-  event_name: string;
+  event_name: CampaignReportEvent;
 }
