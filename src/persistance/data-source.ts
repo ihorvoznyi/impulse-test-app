@@ -24,7 +24,14 @@ export const AppDataSource = new DataSource({
 
   extra: {
     max: Environment.DB_MAX_CONNECTIONS,
-    ssl: undefined,
+    ssl: Environment.DB_ENABLE_SSL
+      ? {
+          ca: Environment.DB_SSL_CA,
+          key: Environment.DB_SSL_KEY,
+          cert: Environment.DB_SSL_CERT,
+          rejectUnauthorized: Environment.DB_SSL_REJECT_UNAUTHORIZED,
+        }
+      : undefined,
   },
 
   synchronize: false,
