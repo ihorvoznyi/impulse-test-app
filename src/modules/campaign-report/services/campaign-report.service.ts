@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ImpulseApiAdapter } from 'src/modules/http-adapters';
 import { CampaignReportsRepository } from 'src/persistance/repositories';
 import { FetchCampaignReportsByDateRangeDto } from '../dtos/fetch-campaign-reports-by-date-range';
@@ -20,6 +26,7 @@ export class CampaignReportService {
   ) {}
 
   public async getByEventName(eventName: string) {
+    throw new NotFoundException(eventName);
     return await this.campaignReportsRepository.findMany({
       where: { eventName },
     });
@@ -36,7 +43,7 @@ export class CampaignReportService {
       map((csvString) => CsvHelper.parse<IImpulseCampaignReport>(csvString)),
       map(ImpulseCompaignReportMapper.map),
       map(this.campaignReportsRepository.createInstance),
-      map(this.bulkInsert),
+      map((instances) => this.bulkInsert(instances)),
       catchError((err) => {
         throw new HttpException(
           `Error processing reports: ${err.message}`,
@@ -73,7 +80,7 @@ export class CampaignReportService {
 
       fetchPageData({
         event_name: params.eventName,
-        take: 50,
+        take: params.take,
         to_date: params.toDate,
         from_date: params.fromDate,
       });
@@ -81,13 +88,13 @@ export class CampaignReportService {
   }
 
   private async bulkInsert(entities: CampaignReportsEntity[]) {
-    const result = { inserted: 0, skipped: 0, failed: [] };
+    const bulkInsertResult = { inserted: 0, skipped: 0, failed: [] };
     if (!entities?.length) {
-      return result;
+      return bulkInsertResult;
     }
 
-    const chunkSize = 500;
-    const chunks = splitIntoChunks(entities, chunkSize);
+    const CHUNK_SIZE = 500;
+    const chunks = splitIntoChunks(entities, CHUNK_SIZE);
     const promises = chunks.map(async (chunk) => {
       let skipped = 0;
       let inserted = 0;
@@ -102,70 +109,39 @@ export class CampaignReportService {
           .orIgnore()
           .execute();
 
-        inserted += result.identifiers.length;
+        inserted += result.identifiers.reduce((acc, identifier) => {
+          if (Boolean(identifier?.id)) {
+            acc += 1;
+          }
+          return acc;
+        }, 0);
+
         skipped += chunk.length - inserted;
       } catch (error) {
         failed.push({
           chunk,
           error,
         });
+        this.logger.error(error);
       }
 
-      result.failed.push(failed);
-      result.skipped += skipped;
-      result.inserted += inserted;
+      return { skipped, inserted, failed };
     });
 
-    await Promise.allSettled(promises);
-    return result;
-  }
+    const promisesResult = await Promise.allSettled(promises);
 
-  private async storeBatch(entities: CampaignReportsEntity[]) {
-    if (!entities?.length) {
-      this.logger.warn(`Skip ${CampaignReportsEntity.name}[] persistance`);
-      return;
-    }
-
-    let successStoreCount = 0;
-    const skipped = [];
-    const errors: { chunk: CampaignReportsEntity[]; error: string }[] = [];
-    const CHUNK_SIZE = 100;
-
-    for (let i = 0; i < entities.length; i += CHUNK_SIZE) {
-      const chunk = entities.slice(i, i + CHUNK_SIZE);
-
-      try {
-        const result = await this.campaignReportsRepository
-          .createQueryBuilder()
-          .insert()
-          .into(CampaignReportsEntity)
-          .values(chunk)
-          .orIgnore()
-          .execute();
-
-        successStoreCount += result.identifiers.length;
-
-        console.dir(result);
-
-        const skippedValues = chunk.filter(
-          (record) =>
-            !result.identifiers.some((row) => {
-              return record.hash === row?.hash;
-            }),
-        );
-
-        skipped.push(skippedValues);
-      } catch (error) {
-        this.logger.error(error);
-        errors.push({ chunk, error: error.message });
+    promisesResult.forEach((entry) => {
+      if (entry.status === 'rejected') {
+        return;
       }
-    }
 
-    return {
-      errors,
-      skipped,
-      failed: errors.length,
-      success: successStoreCount,
-    };
+      const { failed, inserted, skipped } = entry.value;
+
+      bulkInsertResult.failed.push(failed);
+      bulkInsertResult.inserted += inserted;
+      bulkInsertResult.skipped += skipped;
+    });
+
+    return bulkInsertResult;
   }
 }

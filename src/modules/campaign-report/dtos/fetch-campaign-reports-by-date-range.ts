@@ -1,4 +1,4 @@
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsPositive } from 'class-validator';
 import { IsDateFormat } from 'src/common/decorators';
 import { EVENT_NAME } from 'src/modules/http-adapters/impulse-adapter';
 import { EventName } from 'src/modules/http-adapters/impulse-adapter/const';
@@ -12,4 +12,7 @@ export abstract class FetchCampaignReportsByDateRangeDto {
 
   @IsEnum(EVENT_NAME)
   public eventName: EventName;
+
+  @IsPositive()
+  public take: number;
 }
