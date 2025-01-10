@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CastingFunction, parse } from 'csv-parse/sync';
 
 @Injectable()
-export class CsvHelper {
+export class CsvService {
   public static parse<T = unknown>(
     csv: string,
     cast: CastingFunction | boolean = true,

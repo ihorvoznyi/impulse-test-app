@@ -10,7 +10,7 @@ import { CampaignReportsRepository } from 'src/persistance/repositories';
 import { FetchCampaignReportsByDateRangeDto } from '../dtos/fetch-campaign-reports-by-date-range';
 import { catchError, map, Observable } from 'rxjs';
 import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adapter/dtos';
-import { CsvHelper } from 'src/common/helpers/csv';
+import { CsvService } from 'src/modules/libs/csv';
 import { IImpulseCampaignReport } from 'src/modules/http-adapters/impulse-adapter/interfaces';
 import { CampaignReportsEntity } from 'src/persistance/entities/campaign-reports.entity';
 import { ImpulseCompaignReportMapper } from '../mappers/impulse-compaign-report.mapper';
@@ -40,7 +40,7 @@ export class CampaignReportService {
     fetchCampaignReportsInRange: FetchCampaignReportsByDateRangeDto,
   ) {
     const result = this.handlePaginatedFetch(fetchCampaignReportsInRange).pipe(
-      map((csvString) => CsvHelper.parse<IImpulseCampaignReport>(csvString)),
+      map((csvString) => CsvService.parse<IImpulseCampaignReport>(csvString)),
       map(ImpulseCompaignReportMapper.map),
       map(this.campaignReportsRepository.createInstance),
       map((instances) => this.bulkInsert(instances)),
