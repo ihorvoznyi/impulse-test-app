@@ -25,6 +25,7 @@ export class CampaignReportScheduler {
     const fetchParams = events.map(this.createFetchRequestParams);
 
     try {
+      // TODO: optimize amount of calls PROBABLY USING CACHE
       await this.fetchReportsForEvents(fetchParams);
       this.logger.log('Campaign report fetch task completed successfully.');
     } catch (error) {
