@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ImpulseApiAdapter } from 'src/modules/http-adapters';
 import { CampaignReportsRepository } from 'src/persistance/repositories';
-import { FetchCampaignReportsByDateRangeDto } from '../dtos/fetch-campaign-reports-by-date-range';
+import { FetchCampaignReportsByDateRangeDto } from '../dtos/requests/fetch-campaign-reports-by-date-range';
 import { catchError, map, Observable } from 'rxjs';
 import { GetCampaignReportsApiDto } from 'src/modules/http-adapters/impulse-adapter/dtos';
 import { CsvService } from 'src/modules/libs/csv';

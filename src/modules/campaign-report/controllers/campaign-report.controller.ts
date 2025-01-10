@@ -7,17 +7,23 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CampaignReportService } from '../services';
-import { FetchCampaignReportsByDateRangeDto } from '../dtos/fetch-campaign-reports-by-date-range';
+import { FetchCampaignReportsByDateRangeDto } from '../dtos/requests/fetch-campaign-reports-by-date-range';
 
 @Controller('campaign-reports')
 export class CampaignReportController {
   constructor(private readonly campaignReportService: CampaignReportService) {}
 
   @Get()
-  public getAllByEventName(@Param('event_name') eventName: string) {
-    return this.campaignReportService.getByEventName(eventName);
+  public async getCampaignReports(
+    @Query('take') take: string,
+    @Query('page') page: string,
+  ) {
+    const pageNumber = parseInt(page, 10) || 1;
+    const takeNumber = parseInt(take, 10) || 10;
+    const baseUrl = '';
   }
 
   @Post()
