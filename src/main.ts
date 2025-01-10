@@ -41,9 +41,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-
-// -- generic API response
-// -- on success | just a regular response
-// -- -- timestamp, data
-// -- on error | onThrow, onValidation or uncaughtErrors
-// -- -- timestamp, error: { 4XX, 5XX, message: string | string[] }
