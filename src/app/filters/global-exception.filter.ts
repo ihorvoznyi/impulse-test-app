@@ -142,6 +142,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private generateTimestamp() {
-    return this.generateTimestamp();
+    return new Date().toISOString();
   }
 }
