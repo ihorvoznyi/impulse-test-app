@@ -11,5 +11,11 @@ services:
     volumes:
       - ./.data/postgres:/var/lib/postgresql/data:rw
 
+  redis:
+    image: redis:6.2-alpine
+    command: [ 'redis-server', '--save' ]
+    ports:
+      - ${REDIS_PORT}:6379
+
 networks:
   default:
