@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CampaignReportService } from '../services';
 import {
@@ -15,9 +16,12 @@ import {
 import { ManualFetchResDto, PaginatedEventsResponse } from '../dtos/responses';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
+import { RateLimitGuard } from 'src/modules/libs/rate-limiter/guards/rate-limit.guard';
+import { SetRateLimit } from 'src/app/decorators/rate-limit.decorator';
 
 @ApiTags('Campaign Reports')
 @Controller('campaign-reports')
+@UseGuards(RateLimitGuard)
 export class CampaignReportController {
   constructor(private readonly campaignReportService: CampaignReportService) {}
 
@@ -62,6 +66,7 @@ export class CampaignReportController {
     description: 'Details for fetching campaign reports within a date range',
     type: FetchCampaignReportsReqDto,
   })
+  @SetRateLimit(10, 60)
   public initiateDataFetch(
     @Body() dto: FetchCampaignReportsReqDto,
   ): Promise<Observable<ManualFetchResDto>> {
