@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   EnumFieldOptional,
   NumberFieldOptional,
-} from 'src/app/decorators/field.decorators';
+} from 'src/common/decorators/field.decorators';
 import { Order } from 'src/common/const/app.const';
 
 export const DEFAULT_PAGE_LIMIT = 50;

@@ -16,8 +16,7 @@ import {
 import { ManualFetchResDto, PaginatedEventsResponse } from '../dtos/responses';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
-import { RateLimitGuard } from 'src/modules/libs/rate-limiter/guards/rate-limit.guard';
-import { SetRateLimit } from 'src/app/decorators/rate-limit.decorator';
+import { RateLimitGuard, SetRateLimit } from 'src/modules/libs/rate-limiter';
 
 @ApiTags('Campaign Reports')
 @Controller('campaign-reports')

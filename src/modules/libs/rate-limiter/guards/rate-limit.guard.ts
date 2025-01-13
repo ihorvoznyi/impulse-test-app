@@ -10,7 +10,7 @@ import { Reflector } from '@nestjs/core';
 import {
   IRateLimitOptions,
   RATE_LIMIT_OPTIONS_KEY,
-} from 'src/app/decorators/rate-limit.decorator';
+} from 'src/modules/libs/rate-limiter/decorators/rate-limit.decorator';
 import { RateLimitService } from 'src/modules/libs/rate-limiter';
 
 @Injectable()
